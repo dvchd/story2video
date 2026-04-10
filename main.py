@@ -32,7 +32,7 @@ if sys.platform == "win32":
 
 PROXY = os.getenv("PROXY", "").strip() or None
 PORT = int(os.getenv("PORT", "8001"))
-VERSION = os.getenv("VERSION", "v1.0.0")
+VERSION = os.getenv("VERSION", "v1.1.0")
 OUTPUT_DIR = Path("output"); OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Story2Video")
@@ -172,7 +172,7 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
 .opacity-row input[type=range]{flex:1;accent-color:var(--ac);height:4px;cursor:pointer}
 .opacity-row .ov{font-size:.78rem;color:var(--dm);min-width:36px;text-align:right}
 
-/* images */
+/* images/video */
 .img-upload{margin-top:12px;border:2px dashed var(--bd);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:border-color .15s;position:relative}
 .img-upload:hover{border-color:var(--ac)}
 .img-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -180,14 +180,18 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
 .img-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .img-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;transition:border-color .15s,opacity .2s}
 .img-item:hover{border-color:var(--ac)} .img-item.dragging{opacity:.4;border-style:dashed} .img-item.drag-over{border-color:var(--a2);border-width:2px}
-.img-item .handle{cursor:grab;color:var(--dm);font-size:1rem;user-select:none;padding:0 4px} .img-item .handle:active{cursor:grabbing}
+.img-item .handle{cursor:grab;color:var(--dm);font-size:1.1rem;user-select:none;padding:0 4px} .img-item .handle:active{cursor:grabbing}
+.sort-btns{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.sort-btns button{background:var(--sf);border:1px solid var(--bd);color:var(--dm);border-radius:4px;font-size:.65rem;padding:3px 6px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sort-btns button:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
 .img-item img{width:48px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0}
-.img-item .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.img-item .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .img-item .name{font-size:.78rem;color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.img-item .dur-row{display:flex;align-items:center;gap:4px}
-.img-item .dur-row input{width:64px;padding:4px 6px;font-size:.8rem;text-align:center;border-radius:4px}
+.img-item .dur-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.img-item .dur-row input[type=number]{width:64px;padding:4px 6px;font-size:.8rem;text-align:center;border-radius:4px}
+.img-item .dur-row input[type=range]{width:70px; height:24px; cursor:pointer; accent-color:var(--a2);}
 .img-item .dur-row span{font-size:.75rem;color:var(--dm)}
-.img-item .rm{color:var(--dn);cursor:pointer;border:none;background:0 0;font-size:.9rem;padding:4px 8px;flex-shrink:0}
+.img-item .rm{color:var(--dn);cursor:pointer;border:none;background:0 0;font-size:1rem;padding:6px 10px;flex-shrink:0;border-radius:6px} .img-item .rm:hover{background:rgba(255,107,107,0.1)}
 .timeline-bar{display:flex;height:24px;border-radius:6px;overflow:hidden;margin-top:8px;background:var(--bg);border:1px solid var(--bd)}
 .timeline-bar .seg{display:flex;align-items:center;justify-content:center;font-size:.68rem;color:#fff;overflow:hidden;white-space:nowrap;transition:width .3s}
 .img-count{font-size:.78rem;color:var(--dm);margin-top:6px}
@@ -248,12 +252,12 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
     </div>
   </div>
 
-  <!-- Image Manager -->
+  <!-- Image/Video Manager -->
   <div style="margin-top:14px">
-    <label>Background Images</label>
+    <label>Background Media (Images/Videos)</label>
     <div class="img-upload">
-      <input type="file" accept="image/*" multiple id="bgFileInput" onchange="handleImgUpload(this)">
-      <div class="lbl"><b>Click or drop</b> images here (multiple)</div>
+      <input type="file" accept="image/*,video/*" multiple id="bgFileInput" onchange="handleImgUpload(this)">
+      <div class="lbl"><b>Click or drop</b> images/videos here (multiple)</div>
     </div>
     <div class="img-list" id="imgList"></div>
     <div class="timeline-bar" id="timelineBar"></div>
@@ -327,6 +331,19 @@ function hexRgba(hex,a){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${a})`;
 }
+function initAudioCtx() {
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  bgImages.forEach(item => {
+    if(item.type === 'video' && !item.mediaSrc) {
+       item.vid.muted = false; // Bật tiếng cho WebAudio xử lý
+       item.mediaSrc = audioCtx.createMediaElementSource(item.vid);
+       item.gainNode = audioCtx.createGain();
+       item.gainNode.gain.value = item.volume;
+       item.mediaSrc.connect(item.gainNode);
+       item.gainNode.connect(audioCtx.destination);
+    }
+  });
+}
 
 // ══ PRESETS ══════════════════════════════════════════════════════════════════
 document.querySelectorAll('#presetChips .chip').forEach(c=>{
@@ -364,17 +381,39 @@ Object.keys(g).sort((a,b)=>{const ai=pr.indexOf(a),bi=pr.indexOf(b);if(ai>-1&&bi
 .forEach(l=>{const og=document.createElement('optgroup');og.label=l;g[l].forEach(x=>{const o=document.createElement('option');o.value=x.name;o.textContent=`${x.name} (${x.gender})`;
 if(x.name==='vi-VN-HoaiMyNeural')o.selected=true;og.appendChild(o);});s.appendChild(og);});}catch(e){}})();
 
-// ══ IMAGE MANAGER ═══════════════════════════════════════════════════════════
+// ══ MEDIA MANAGER (IMAGES & VIDEOS) ═════════════════════════════════════════
 function handleImgUpload(input){
   const files=Array.from(input.files);let loaded=0;
+  const checkDone = () => { loaded++; if(loaded===files.length){redistEqual();renderImgUI();drawFrame(0);} };
+  
   files.forEach(f=>{
-    const url=URL.createObjectURL(f),img=new Image();
-    img.onload=()=>{bgImages.push({id:uid(),img,name:f.name,duration:0,thumbUrl:url});loaded++;
-      if(loaded===files.length){redistEqual();renderImgUI();drawFrame(0);}};
-    img.src=url;
+    const url=URL.createObjectURL(f);
+    if(f.type.startsWith('video/')){
+      const vid = document.createElement('video');
+      vid.src = url; vid.crossOrigin = "anonymous"; vid.muted = true;
+      vid.addEventListener('loadeddata', () => {
+         const cvs = document.createElement('canvas'); cvs.width = 160; cvs.height = 90;
+         cvs.getContext('2d').drawImage(vid, 0, 0, 160, 90);
+         bgImages.push({id:uid(), type:'video', vid:vid, name:f.name, duration:vid.duration||5, thumbUrl:cvs.toDataURL(), volume:0.5});
+         checkDone();
+      }, {once:true});
+      vid.load(); vid.currentTime = 0.1; // lấy thumbnail
+    } else {
+      const img=new Image();
+      img.onload=()=>{bgImages.push({id:uid(), type:'image', img:img, name:f.name, duration:0, thumbUrl:url, volume:0});checkDone();};
+      img.src=url;
+    }
   });
   input.value='';
 }
+
+function moveItem(from, to) {
+    if(to < 0 || to >= bgImages.length || from === to) return;
+    const [moved] = bgImages.splice(from, 1);
+    bgImages.splice(to, 0, moved);
+    renderImgUI(); drawFrame(0);
+}
+
 function redistEqual(){if(!bgImages.length)return;const each=totalDur/bgImages.length;bgImages.forEach(i=>i.duration=each);}
 function adjustDur(idx,newD){
   const MIN=0.5,n=bgImages.length;if(n<2)return;
@@ -390,32 +429,56 @@ function normDur(){if(!bgImages.length)return;const sm=bgImages.reduce((s,x)=>s+
 function removeImg(i){bgImages.splice(i,1);if(bgImages.length)redistEqual();renderImgUI();drawFrame(0);}
 
 function renderImgUI(){
-  const list=$('imgList'),bar=$('timelineBar'),cnt=$('imgCount');
-  list.innerHTML='';
+  const list=$('imgList'),bar=$('timelineBar'),cnt=$('imgCount'); list.innerHTML='';
   bgImages.forEach((item,i)=>{
-    const el=document.createElement('div');el.className='img-item';el.draggable=true;el.dataset.idx=i;
-    el.innerHTML=`<span class="handle" title="Drag">☰</span><img src="${item.thumbUrl}">
-      <div class="info"><div class="name">${item.name}</div>
-      <div class="dur-row"><input type="number" value="${item.duration.toFixed(1)}" step="0.5" min="0.5" data-idx="${i}"><span>s</span></div></div>
+    const el=document.createElement('div');el.className='img-item'; el.draggable=false; // default false to fix slider bug
+    const volHtml = item.type==='video' ? `<input type="range" title="Volume" min="0" max="1" step="0.05" value="${item.volume}" data-vidx="${i}">` : ``;
+    
+    el.innerHTML=`
+      <span class="handle" title="Drag to sort">☰</span>
+      <div class="sort-btns">
+         <button class="up" title="Move Up">▲</button>
+         <button class="dn" title="Move Down">▼</button>
+      </div>
+      <img src="${item.thumbUrl}">
+      <div class="info"><div class="name">${item.type==='video'?'🎬':''} ${item.name}</div>
+      <div class="dur-row"><input type="number" value="${item.duration.toFixed(1)}" step="0.5" min="0.5" data-idx="${i}"><span>s</span>${volHtml}</div></div>
       <button class="rm" data-idx="${i}" title="Remove">✕</button>`;
-    el.querySelector('input').addEventListener('change',e=>adjustDur(parseInt(e.target.dataset.idx),parseFloat(e.target.value)||1));
+      
+    el.querySelector('input[type="number"]').addEventListener('change',e=>adjustDur(parseInt(e.target.dataset.idx),parseFloat(e.target.value)||1));
+    
+    const vRange = el.querySelector('input[type="range"]');
+    if(vRange) vRange.addEventListener('input',e=>{ item.volume=parseFloat(e.target.value); if(item.gainNode) item.gainNode.gain.value=item.volume; });
+    
     el.querySelector('.rm').addEventListener('click',e=>removeImg(parseInt(e.target.dataset.idx)));
+    
+    // Sort buttons for Mobile & Desktop
+    el.querySelector('.up').addEventListener('click',()=>moveItem(i, i-1));
+    el.querySelector('.dn').addEventListener('click',()=>moveItem(i, i+1));
+
+    // Drag setup strictly isolated to the handle
+    const handle = el.querySelector('.handle');
+    handle.onmousedown = () => el.draggable = true;
+    handle.onmouseup = () => el.draggable = false;
+    handle.onmouseleave = () => el.draggable = false;
+    handle.ontouchstart = () => el.draggable = true;
+    handle.ontouchend = () => el.draggable = false;
+
     el.addEventListener('dragstart',e=>{dragIdx=i;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    el.addEventListener('dragend',()=>{dragIdx=-1;list.querySelectorAll('.img-item').forEach(x=>{x.classList.remove('dragging','drag-over');});});
+    el.addEventListener('dragend',()=>{el.draggable=false;dragIdx=-1;list.querySelectorAll('.img-item').forEach(x=>{x.classList.remove('dragging','drag-over');});});
     el.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';el.classList.add('drag-over');});
     el.addEventListener('dragleave',()=>el.classList.remove('drag-over'));
-    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('drag-over');
-      const from=dragIdx,to=i;if(from===to||from<0)return;
-      const[moved]=bgImages.splice(from,1);bgImages.splice(to,0,moved);renderImgUI();drawFrame(0);});
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('drag-over');moveItem(dragIdx, i);});
     list.appendChild(el);
   });
+  
   bar.innerHTML='';
   if(bgImages.length){bgImages.forEach((item,i)=>{const pct=item.duration/totalDur*100;
     const seg=document.createElement('div');seg.className='seg';seg.style.width=pct+'%';
     seg.style.background=SEG_COLORS[i%SEG_COLORS.length];seg.textContent=pct>8?item.duration.toFixed(1)+'s':'';
     seg.title=`${item.name} — ${item.duration.toFixed(1)}s`;bar.appendChild(seg);});bar.style.display='flex';}
   else bar.style.display='none';
-  cnt.textContent=bgImages.length?`${bgImages.length} image(s) — total ${totalDur.toFixed(1)}s`:'';
+  cnt.textContent=bgImages.length?`${bgImages.length} media item(s) — total ${totalDur.toFixed(1)}s`:'';
 }
 
 // ══ GENERATE TTS ════════════════════════════════════════════════════════════
@@ -430,7 +493,7 @@ async function genTTS(){
     if(!r.ok)throw new Error(`HTTP ${r.status}: ${await r.text()}`);
     const d=await r.json();subs=d.subtitles;
     sp.textContent=await(await fetch(d.srt_url)).text();sp.style.display='block';
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
     audioBuf=await audioCtx.decodeAudioData(await(await fetch(d.mp3_url)).arrayBuffer());
     totalDur=audioBuf.duration;if(bgImages.length)redistEqual();renderImgUI();
     st.textContent=`Done! ${subs.length} cues, ${totalDur.toFixed(1)}s.`;
@@ -452,19 +515,31 @@ function S(){return{
   hlA:parseInt($('hlOpacity').value)/100,
 };}
 function activeSub(t){for(const s of subs)if(t>=s.start&&t<=s.end)return s;return null;}
-function activeBg(t){if(!bgImages.length)return null;let cum=0;
-  for(const item of bgImages){cum+=item.duration;if(t<cum)return item.img;}
-  return bgImages[bgImages.length-1].img;}
+function activeBgInfo(t){
+  if(!bgImages.length)return null; let cum=0;
+  for(const item of bgImages){ if(t>=cum && t<cum+item.duration) return {item, localTime: t-cum}; cum+=item.duration; }
+  return {item: bgImages[bgImages.length-1], localTime: t-cum};
+}
 
 function drawFrame(time,canvas,settings){
   const c=canvas||$('cvs'),s=settings||S(),ctx=c.getContext('2d');
   if(c.width!==s.w||c.height!==s.h){c.width=s.w;c.height=s.h;}
   // BG
-  const bg=activeBg(time);
-  if(bg){const ir=bg.width/bg.height,cr=s.w/s.h;let sw,sh,sx,sy;
-    if(ir>cr){sh=bg.height;sw=sh*cr;sx=(bg.width-sw)/2;sy=0;}
-    else{sw=bg.width;sh=sw/cr;sx=0;sy=(bg.height-sh)/2;}
-    ctx.drawImage(bg,sx,sy,sw,sh,0,0,s.w,s.h);
+  const bgInfo=activeBgInfo(time);
+  if(bgInfo){
+    const item = bgInfo.item;
+    const source = item.type==='video' ? item.vid : item.img;
+    const w = item.type==='video' ? item.vid.videoWidth||s.w : item.img.width;
+    const h = item.type==='video' ? item.vid.videoHeight||s.h : item.img.height;
+    
+    if(item.type==='video' && item.vid.paused && Math.abs(item.vid.currentTime - bgInfo.localTime) > 0.1) {
+        item.vid.currentTime = bgInfo.localTime;
+    }
+
+    const ir=w/h, cr=s.w/s.h; let sw,sh,sx,sy;
+    if(ir>cr){sh=h;sw=sh*cr;sx=(w-sw)/2;sy=0;}
+    else{sw=w;sh=sw/cr;sx=0;sy=(h-sh)/2;}
+    ctx.drawImage(source,sx,sy,sw,sh,0,0,s.w,s.h);
     ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,s.w,s.h);
   }else{ctx.fillStyle=s.bg;ctx.fillRect(0,0,s.w,s.h);}
   // Sub
@@ -476,18 +551,14 @@ function drawFrame(time,canvas,settings){
     const lines=wrap(ctx,sub.text,mw),lh=s.fs*1.35,th=lines.length*lh,sy2=y-th/2+lh/2;
     let bw=0;lines.forEach(l=>{bw=Math.max(bw,ctx.measureText(l).width);});
     const p=20,bx=x-bw/2-p,by=sy2-lh/2-p/2,bfw=bw+p*2,bfh=th+p;
-    // Box bg
     ctx.fillStyle='rgba(0,0,0,0.6)';rrF(ctx,bx,by,bfw,bfh,12);
-    // Highlight sweep
     const pr=Math.min(1,Math.max(0,(time-sub.start)/(sub.end-sub.start)));
     ctx.save();ctx.beginPath();rrP(ctx,bx,by,bfw,bfh,12);ctx.clip();
     ctx.fillStyle=hexRgba(s.hl,s.hlA);ctx.fillRect(bx,by,bfw*pr,bfh);ctx.restore();
-    // Text
     ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=8;
     ctx.fillStyle=hexRgba(s.fg,s.fgA);
     lines.forEach((l,i)=>ctx.fillText(l,x,sy2+i*lh));ctx.restore();
   }
-  // Timeline
   if(audioBuf&&time>0){const pct=time/audioBuf.duration;ctx.save();
     ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(0,s.h-3,s.w,3);
     ctx.fillStyle=hexRgba(s.hl,0.8);ctx.fillRect(0,s.h-3,s.w*pct,3);ctx.restore();}
@@ -497,37 +568,63 @@ function rrP(c,x,y,w,h,r){c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x
 function rrF(c,x,y,w,h,r){c.beginPath();rrP(c,x,y,w,h,r);c.fill();}
 
 // ══ PREVIEW ═════════════════════════════════════════════════════════════════
+function syncVideos(time){
+  const active=activeBgInfo(time);
+  bgImages.forEach(i=>{
+    if(i.type==='video'){
+      if(active && active.item===i){ if(i.vid.paused){ i.vid.currentTime=active.localTime; i.vid.play().catch(()=>{}); } }
+      else { if(!i.vid.paused) i.vid.pause(); }
+    }
+  });
+}
+function stopAllVideos(){ bgImages.forEach(i=>{if(i.type==='video')i.vid.pause();}); }
+
 function playPrev(){
-  if(!audioBuf||!audioCtx)return;stopPrev();
+  if(!audioBuf)return; stopPrev(); initAudioCtx();
   if(audioCtx.state==='suspended')audioCtx.resume();
   srcNode=audioCtx.createBufferSource();srcNode.buffer=audioBuf;srcNode.connect(audioCtx.destination);srcNode.start(0);
   t0=audioCtx.currentTime;isPlay=true;$('btnPlay').disabled=true;$('btnStop').disabled=false;
-  srcNode.onended=()=>{isPlay=false;$('btnPlay').disabled=false;$('btnStop').disabled=true;if(aFrame)cancelAnimationFrame(aFrame);drawFrame(0);};
-  (function lp(){if(!isPlay)return;drawFrame(audioCtx.currentTime-t0);aFrame=requestAnimationFrame(lp);})();
+  srcNode.onended=()=>{isPlay=false;$('btnPlay').disabled=false;$('btnStop').disabled=true;if(aFrame)cancelAnimationFrame(aFrame);stopAllVideos();drawFrame(0);};
+  (function lp(){if(!isPlay)return; const t=audioCtx.currentTime-t0; syncVideos(t); drawFrame(t); aFrame=requestAnimationFrame(lp);})();
 }
-function stopPrev(){isPlay=false;if(aFrame)cancelAnimationFrame(aFrame);
+function stopPrev(){isPlay=false;if(aFrame)cancelAnimationFrame(aFrame); stopAllVideos();
   if(srcNode){try{srcNode.stop();}catch(e){}srcNode=null;}$('btnPlay').disabled=!audioBuf;$('btnStop').disabled=true;}
 
 // ══ EXPORT ══════════════════════════════════════════════════════════════════
 async function exportVid(){
-  if(!audioBuf)return;$('btnExp').disabled=true;stopPrev();
+  if(!audioBuf)return;$('btnExp').disabled=true;stopPrev();initAudioCtx();
   const s=S(),dur=audioBuf.duration,tot=Math.ceil(dur*s.fps);
   const br=parseInt($('expBr').value),mime=pickMime($('expFmt').value==='mp4'),ext=mime.startsWith('video/mp4')?'mp4':'webm';
   $('stExp').textContent=`Rendering ${tot} frames…`;$('expFill').style.width='0%';
   const off=document.createElement('canvas');off.width=s.w;off.height=s.h;
-  const st=off.captureStream(0),ad=audioCtx.createMediaStreamDestination(),as2=audioCtx.createBufferSource();
-  as2.buffer=audioBuf;as2.connect(ad);as2.connect(audioCtx.destination);
+  
+  const st=off.captureStream(s.fps), ad=audioCtx.createMediaStreamDestination();
+  const as2=audioCtx.createBufferSource(); as2.buffer=audioBuf;
+  as2.connect(ad); as2.connect(audioCtx.destination);
+  
+  bgImages.forEach(i=>{
+     if(i.type==='video' && i.gainNode){
+         i.gainNode.disconnect(); i.gainNode.connect(ad); i.gainNode.connect(audioCtx.destination);
+     }
+  });
+
   ad.stream.getAudioTracks().forEach(t=>st.addTrack(t));
   const rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:br}),ch=[];
   rec.ondataavailable=e=>{if(e.data.size)ch.push(e.data);};
   const done=new Promise(r=>{rec.onstop=r;});rec.start();as2.start(0);
   const rt=audioCtx.currentTime,vt=st.getVideoTracks()[0];let last=-1;
+  
   (function lp(){const el=audioCtx.currentTime-rt,fn=Math.floor(el*s.fps);
-    if(el>=dur+.3){rec.stop();try{as2.stop();}catch(e){}return;}
-    if(fn!==last&&fn<tot){const t=fn/s.fps;drawFrame(t,off,s);drawFrame(t);
-      if(vt.requestFrame)vt.requestFrame();last=fn;
+    if(el>=dur+.3 || fn>=tot){
+        rec.stop();try{as2.stop();}catch(e){} stopAllVideos();
+        bgImages.forEach(i=>{ if(i.type==='video'&&i.gainNode){ i.gainNode.disconnect(); i.gainNode.connect(audioCtx.destination); } });
+        return;
+    }
+    if(fn!==last&&fn<tot){const t=fn/s.fps; syncVideos(t); drawFrame(t,off,s); drawFrame(t);
+      if(vt&&vt.requestFrame)vt.requestFrame();last=fn;
       const p=Math.round(fn/tot*100);$('expFill').style.width=p+'%';$('stExp').textContent=`${fn+1}/${tot} (${p}%)`;}
     requestAnimationFrame(lp);})();
+    
   await done;$('expFill').style.width='100%';
   const blob=new Blob(ch,{type:mime}),a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download=`tts_video.${ext}`;document.body.appendChild(a);a.click();document.body.removeChild(a);
