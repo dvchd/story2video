@@ -32,7 +32,7 @@ if sys.platform == "win32":
 
 PROXY = os.getenv("PROXY", "").strip() or None
 PORT = int(os.getenv("PORT", "8001"))
-VERSION = os.getenv("VERSION", "v1.1.0")
+VERSION = os.getenv("VERSION", "v1.2.0")
 OUTPUT_DIR = Path("output"); OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Story2Video")
@@ -126,18 +126,21 @@ FRONTEND_HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Story2Video</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231a1a2e'/><path d='M14 20C14 18.8954 14.8954 18 16 18H48C49.1046 18 50 18.8954 50 20V44C50 45.1046 49.1046 46 48 46H16C14.8954 46 14 45.1046 14 44V20Z' fill='%236c5ce7'/><path d='M28 26V38L38 32L28 26Z' fill='white'/><rect x='18' y='22' width='4' height='4' fill='white' opacity='0.4'/><rect x='42' y='22' width='4' height='4' fill='white' opacity='0.4'/><rect x='18' y='38' width='4' height='4' fill='white' opacity='0.4'/><rect x='42' y='38' width='4' height='4' fill='white' opacity='0.4'/></svg>">
 <style>
 :root{--bg:#0f0f13;--sf:#1a1a24;--bd:#2a2a3a;--tx:#e4e4ef;--dm:#888899;--ac:#6c5ce7;--a2:#00cec9;--dn:#ff6b6b;--rd:10px}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
-.ctn{max-width:1100px;margin:0 auto;padding:24px 20px}
+.ctn{max-width:1150px;margin:0 auto;padding:24px 20px}
 .hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
 h1{font-size:1.6rem;font-weight:700} h1 span{color:var(--ac)}
 .ver{font-size:.75rem;color:var(--dm);background:var(--sf);border:1px solid var(--bd);padding:2px 10px;border-radius:20px}
 .sub{color:var(--dm);font-size:.9rem;margin-bottom:28px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start} /* Added align-items:start for sticky */
 @media(max-width:768px){.grid{grid-template-columns:1fr}}
+
+/* Right Panel Sticky */
+.right-panel{position:sticky;top:24px;height:fit-content;}
+
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rd);padding:20px}
 .card+.card{margin-top:18px}
 .card h2{font-size:1rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
@@ -184,20 +187,57 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
 .sort-btns{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
 .sort-btns button{background:var(--sf);border:1px solid var(--bd);color:var(--dm);border-radius:4px;font-size:.65rem;padding:3px 6px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .sort-btns button:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
-.img-item img{width:48px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.img-item img{width:48px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer}
 .img-item .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .img-item .name{font-size:.78rem;color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .img-item .dur-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .img-item .dur-row input[type=number]{width:64px;padding:4px 6px;font-size:.8rem;text-align:center;border-radius:4px}
 .img-item .dur-row input[type=range]{width:70px; height:24px; cursor:pointer; accent-color:var(--a2);}
 .img-item .dur-row span{font-size:.75rem;color:var(--dm)}
+.img-item .btn-icon{background:var(--sf); color:var(--tx); border:1px solid var(--bd); padding:4px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;}
+.img-item .btn-icon:hover{background:var(--ac); border-color:var(--ac);}
 .img-item .rm{color:var(--dn);cursor:pointer;border:none;background:0 0;font-size:1rem;padding:6px 10px;flex-shrink:0;border-radius:6px} .img-item .rm:hover{background:rgba(255,107,107,0.1)}
-.timeline-bar{display:flex;height:24px;border-radius:6px;overflow:hidden;margin-top:8px;background:var(--bg);border:1px solid var(--bd)}
-.timeline-bar .seg{display:flex;align-items:center;justify-content:center;font-size:.68rem;color:#fff;overflow:hidden;white-space:nowrap;transition:width .3s}
+.timeline-bar{display:flex;height:24px;border-radius:6px;overflow:hidden;margin-top:8px;background:var(--bg);border:1px solid var(--bd);cursor:pointer;}
+.timeline-bar .seg{display:flex;align-items:center;justify-content:center;font-size:.68rem;color:#fff;overflow:hidden;white-space:nowrap;transition:width .3s;pointer-events:none;}
 .img-count{font-size:.78rem;color:var(--dm);margin-top:6px}
+
+/* New Toggles */
+.chk-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.chk-row input{accent-color:var(--ac);width:16px;height:16px;cursor:pointer}
+.chk-row label{margin:0;cursor:pointer;font-size:.82rem;color:var(--tx)}
+
+/* Adv Settings Collapsible */
+details.adv-set { margin-top: 18px; background: var(--bg); border: 1px solid var(--bd); border-radius: 8px; }
+details.adv-set summary { padding: 12px 14px; font-weight: 600; font-size: 0.9rem; cursor: pointer; user-select: none; color: var(--tx); outline: none;}
+details.adv-set summary:hover { color: var(--ac); }
+.adv-content { padding: 14px; border-top: 1px solid var(--bd); display: flex; flex-direction: column; gap: 14px; }
+.adv-section { border-bottom: 1px dashed var(--bd); padding-bottom: 14px; }
+.adv-section:last-child { border-bottom: none; padding-bottom: 0; }
+
+.inline-btn { background: var(--sf); color: var(--tx); border: 1px solid var(--bd); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;}
+.inline-btn:hover { background: var(--ac); border-color: var(--ac); color: white;}
+.inline-remove-btn { background: var(--dn); color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;}
+.inline-remove-btn:hover { opacity: 0.8; }
+.thumb-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap:wrap;}
+.thumb-preview img { height: 36px; border-radius: 4px; border: 1px solid var(--bd); object-fit: contain; cursor:pointer;}
+
+/* Modal Preview */
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px);}
+.modal.active { display: flex; }
+.modal-content { max-width: 90%; max-height: 80vh; position:relative; }
+.modal-content img, .modal-content video { max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.modal-close { margin-top: 20px; background: var(--dn); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight:bold; font-size:1rem;}
+.modal-close:hover { opacity: 0.8; }
 </style>
 </head>
 <body>
+
+<!-- MEDIA PREVIEW MODAL -->
+<div class="modal" id="mediaModal">
+    <div class="modal-content" id="modalContent"></div>
+    <button class="modal-close" onclick="closeModal()">✕ Đóng</button>
+</div>
+
 <div class="ctn">
 <div class="hdr">
   <h1>Story<span>2</span>Video</h1>
@@ -206,12 +246,12 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
 <p class="sub">Edge TTS → MP3 + SRT/VTT → Client-side Video Rendering</p>
 <div class="grid">
 
-<!-- ═══ LEFT ═══ -->
-<div>
+<!-- ═══ LEFT PANEL ═══ -->
+<div class="left-panel">
 <div class="card">
   <h2>Input <span class="badge">Edge TTS</span></h2>
   <label>Text</label>
-  <textarea id="inputText" placeholder="Nhập văn bản…">Xin chào! Đây là ứng dụng tạo video từ văn bản. Bạn chỉ cần nhập nội dung, chọn giọng đọc, và ứng dụng sẽ tự động tạo video với phụ đề ngay trên trình duyệt.</textarea>
+  <textarea id="inputText" placeholder="Nhập văn bản…">Xin chào! Bản cập nhật này đã ghim cố định màn hình Preview bên phải để bạn dễ theo dõi. Ngoài ra bạn có thể nghe thử BGM, xem trước kích thước thật của ảnh/video, và lỗi âm thanh lúc tua cũng đã được khắc phục hoàn toàn!</textarea>
   <label style="margin-top:14px">Quick Voice</label>
   <div class="chips" id="voiceTabs"></div>
   <div class="row">
@@ -253,47 +293,112 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
   </div>
 
   <!-- Image/Video Manager -->
-  <div style="margin-top:14px">
+  <div style="margin-top:14px; border-top:1px dashed var(--bd); padding-top:14px;">
     <label>Background Media (Images/Videos)</label>
-    <div class="img-upload">
+    
+    <!-- Toggles -->
+    <div class="chk-row">
+      <input type="checkbox" id="kenBurns" checked onchange="drawFrame(-1)">
+      <label for="kenBurns">Hiệu ứng ảnh động (Ken Burns Zoom)</label>
+    </div>
+    <div class="chk-row" style="margin-bottom:10px">
+      <input type="checkbox" id="blurBg" checked onchange="drawFrame(-1)">
+      <label for="blurBg">Nền mờ (Blur Fit Mode thay vì Crop)</label>
+    </div>
+
+    <div class="img-upload" style="margin-top:0;">
       <input type="file" accept="image/*,video/*" multiple id="bgFileInput" onchange="handleImgUpload(this)">
       <div class="lbl"><b>Click or drop</b> images/videos here (multiple)</div>
     </div>
     <div class="img-list" id="imgList"></div>
-    <div class="timeline-bar" id="timelineBar"></div>
+    <div class="timeline-bar" id="timelineBar" title="Click để tua"></div>
     <div class="img-count" id="imgCount"></div>
   </div>
 
-  <div style="margin-top:14px">
-    <label>Text Color</label>
-    <div class="color-row">
-      <input type="color" id="textColor" value="#ffffff" oninput="$('textColorText').value=this.value">
-      <input type="text" id="textColorText" value="#ffffff" oninput="$('textColor').value=this.value">
-    </div>
-    <div class="opacity-row">
-      <span style="font-size:.78rem;color:var(--dm)">Opacity</span>
-      <input type="range" id="textOpacity" min="0" max="100" value="100" oninput="$('toVal').textContent=this.value+'%'">
-      <span class="ov" id="toVal">100%</span>
-    </div>
-  </div>
+  <!-- Advanced Settings (Collapsible) -->
+  <details class="adv-set">
+    <summary>Cài đặt nâng cao (BGM, Watermark, Màu sắc) ⚙️</summary>
+    <div class="adv-content">
+        
+        <!-- BGM -->
+        <div class="adv-section">
+            <label>Nhạc nền (BGM)</label>
+            <div class="img-upload" style="margin-top:4px; padding:10px;">
+              <input type="file" accept="audio/*" id="bgmInput" onchange="handleBgmUpload(this)">
+              <div class="lbl"><b>Upload MP3/WAV</b></div>
+            </div>
+            <div class="thumb-preview" id="bgmPreviewWrap" style="display:none; flex-wrap:wrap; align-items:center;">
+                <span id="bgmName" style="color:var(--tx); font-size:0.8rem; max-width: 150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                <button class="inline-btn" onclick="previewMedia('audio', bgm.el.src)" title="Nghe thử">🔊 Nghe</button>
+                <div style="flex:1"></div>
+                <div class="chk-row" style="margin:0"><input type="checkbox" id="bgmLoop" checked onchange="if(bgm.el) bgm.el.loop=this.checked;"><label for="bgmLoop">Lặp</label></div>
+                <button class="inline-remove-btn" onclick="removeBgm()" title="Xóa nhạc nền">✕</button>
+            </div>
+            <div class="opacity-row" style="margin-top:10px">
+              <span style="font-size:.78rem;color:var(--dm)">Âm lượng</span>
+              <input type="range" id="bgmVol" min="0" max="100" value="15" oninput="updateBgmVol(this.value)">
+              <span class="ov" id="bgmVolVal">15%</span>
+            </div>
+        </div>
 
-  <div style="margin-top:10px">
-    <label>Highlight Color</label>
-    <div class="color-row">
-      <input type="color" id="hlColor" value="#6c5ce7" oninput="$('hlColorText').value=this.value">
-      <input type="text" id="hlColorText" value="#6c5ce7" oninput="$('hlColor').value=this.value">
+        <!-- Watermark -->
+        <div class="adv-section">
+            <label>Watermark / Logo</label>
+            <div class="sgrid" style="grid-template-columns: 2fr 1fr; gap:10px; margin-top:4px">
+                <div class="img-upload" style="margin-top:0; padding:8px"><input type="file" accept="image/*" id="wmFileInput" onchange="handleWmUpload(this)"><div class="lbl"><b>Upload Logo</b></div></div>
+                <div><label>Vị trí</label><select id="wmPos" onchange="drawFrame(-1)"><option value="tl">Top-Left</option><option value="tr">Top-Right</option><option value="bl">Bot-Left</option><option value="br" selected>Bot-Right</option></select></div>
+            </div>
+            <div class="thumb-preview" id="wmPreviewWrap" style="display:none;">
+                <span style="font-size:0.8rem;color:var(--dm)">Ảnh:</span>
+                <img id="wmPreviewImg" src="" onclick="previewMedia('image', this.src)">
+                <button class="inline-btn" onclick="previewMedia('image', wm.img.src)" title="Xem">👁️</button>
+                <div style="flex:1"></div>
+                <button class="inline-remove-btn" onclick="removeWm()" title="Xóa Watermark">✕</button>
+            </div>
+            <div class="opacity-row" style="margin-top:10px">
+              <span style="font-size:.78rem;color:var(--dm)">Kích thước</span>
+              <input type="range" id="wmScale" min="5" max="100" value="15" oninput="$('wmScaleVal').textContent=this.value+'%'; drawFrame(-1)">
+              <span class="ov" id="wmScaleVal">15%</span>
+            </div>
+            <div class="opacity-row">
+              <span style="font-size:.78rem;color:var(--dm)">Độ mờ</span>
+              <input type="range" id="wmOpacity" min="0" max="100" value="60" oninput="$('wmOv').textContent=this.value+'%'; drawFrame(-1)">
+              <span class="ov" id="wmOv">60%</span>
+            </div>
+        </div>
+
+        <!-- Colors -->
+        <div class="adv-section">
+            <label>Text Color</label>
+            <div class="color-row">
+              <input type="color" id="textColor" value="#ffffff" oninput="$('textColorText').value=this.value">
+              <input type="text" id="textColorText" value="#ffffff" oninput="$('textColor').value=this.value">
+            </div>
+            <div class="opacity-row">
+              <span style="font-size:.78rem;color:var(--dm)">Opacity</span>
+              <input type="range" id="textOpacity" min="0" max="100" value="100" oninput="$('toVal').textContent=this.value+'%'">
+              <span class="ov" id="toVal">100%</span>
+            </div>
+            
+            <label style="margin-top:10px">Highlight Color</label>
+            <div class="color-row">
+              <input type="color" id="hlColor" value="#6c5ce7" oninput="$('hlColorText').value=this.value">
+              <input type="text" id="hlColorText" value="#6c5ce7" oninput="$('hlColor').value=this.value">
+            </div>
+            <div class="opacity-row">
+              <span style="font-size:.78rem;color:var(--dm)">Opacity</span>
+              <input type="range" id="hlOpacity" min="0" max="100" value="40" oninput="$('hoVal').textContent=this.value+'%'">
+              <span class="ov" id="hoVal">40%</span>
+            </div>
+        </div>
+
     </div>
-    <div class="opacity-row">
-      <span style="font-size:.78rem;color:var(--dm)">Opacity</span>
-      <input type="range" id="hlOpacity" min="0" max="100" value="40" oninput="$('hoVal').textContent=this.value+'%'">
-      <span class="ov" id="hoVal">40%</span>
-    </div>
-  </div>
+  </details>
 </div>
 </div>
 
-<!-- ═══ RIGHT ═══ -->
-<div>
+<!-- ═══ RIGHT PANEL (STICKY) ═══ -->
+<div class="right-panel">
 <div class="card">
   <h2>Preview <span class="badge">Canvas</span></h2>
   <div class="preview-wrap"><canvas id="cvs" width="1280" height="720"></canvas></div>
@@ -301,6 +406,7 @@ select,input[type=text],input[type=number]{width:100%;background:var(--bg);color
     <button class="btn btn-p" style="flex:1;margin:0" id="btnPlay" onclick="playPrev()" disabled>▶ Play</button>
     <button class="btn btn-d" id="btnStop" onclick="stopPrev()" disabled>■ Stop</button>
   </div>
+  <p style="font-size:0.75rem; color:var(--dm); margin-top:8px; text-align:center;">💡 <i>Mẹo: Click vào thanh Timeline màu sắc phía bên trái để tua nhanh Video.</i></p>
 </div>
 <div class="card">
   <h2>Export <span class="badge">Client-side</span></h2>
@@ -323,14 +429,32 @@ const $=id=>document.getElementById(id);
 const SEG_COLORS=['#6c5ce7','#00cec9','#e17055','#fdcb6e','#a29bfe','#55efc4','#fab1a0','#74b9ff','#ff7675','#81ecec'];
 
 let audioBuf=null,audioCtx=null,subs=[],isPlay=false,aFrame=null,srcNode=null,t0=0;
-let bgImages=[],totalDur=10,dragIdx=-1;
+let bgImages=[],totalDur=10,dragIdx=-1,curTime=0;
 
-// ══ HELPERS ═════════════════════════════════════════════════════════════════
+// BGM & Watermark Objects
+let bgm = { el: null, src: null, gain: null, vol: 0.15 };
+let wm = { img: null };
+
+// ══ UI HELPERS ══════════════════════════════════════════════════════════════
+function previewMedia(type, url) {
+    const mc = $('modalContent'); mc.innerHTML = '';
+    if(type==='image') { mc.innerHTML = `<img src="${url}">`; }
+    else if(type==='video') { mc.innerHTML = `<video src="${url}" controls autoplay loop></video>`; }
+    else if(type==='audio') { mc.innerHTML = `<audio src="${url}" controls autoplay style="width:300px; height:50px;"></audio>`; }
+    $('mediaModal').classList.add('active');
+}
+function closeModal() {
+    $('modalContent').innerHTML = ''; // automatically stops audio/video playing
+    $('mediaModal').classList.remove('active');
+}
+
 function uid(){return Math.random().toString(36).slice(2,8);}
 function hexRgba(hex,a){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${a})`;
 }
+
+// ══ AUDIO CONTEXT ═══════════════════════════════════════════════════════════
 function initAudioCtx() {
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   bgImages.forEach(item => {
@@ -343,6 +467,52 @@ function initAudioCtx() {
        item.gainNode.connect(audioCtx.destination);
     }
   });
+  // Setup BGM
+  if(bgm.el && !bgm.src) {
+       bgm.src = audioCtx.createMediaElementSource(bgm.el);
+       bgm.gain = audioCtx.createGain();
+       bgm.gain.gain.value = bgm.vol;
+       bgm.src.connect(bgm.gain);
+       bgm.gain.connect(audioCtx.destination);
+  }
+}
+
+// ══ BGM & WATERMARK HANDLERS ══
+function updateBgmVol(v) {
+  $('bgmVolVal').textContent=v+'%'; bgm.vol = parseInt(v)/100;
+  if(bgm.gain) bgm.gain.gain.value = bgm.vol;
+}
+function handleBgmUpload(input) {
+  const file = input.files[0]; if(!file) return;
+  if(bgm.el) { bgm.el.pause(); bgm.el.src=''; bgm.src = null; }
+  bgm.el = new Audio(URL.createObjectURL(file));
+  bgm.el.loop = $('bgmLoop').checked; 
+  bgm.el.crossOrigin = "anonymous";
+  $('bgmName').textContent = file.name;
+  $('bgmPreviewWrap').style.display = 'flex';
+}
+function removeBgm() {
+  if(bgm.el) { bgm.el.pause(); bgm.el.src=''; bgm.src = null; bgm.el = null; }
+  $('bgmInput').value = '';
+  $('bgmPreviewWrap').style.display = 'none';
+}
+
+function handleWmUpload(input) {
+  const file = input.files[0]; if(!file) return;
+  const img = new Image(); 
+  img.onload = () => { 
+      wm.img = img; 
+      $('wmPreviewImg').src = img.src;
+      $('wmPreviewWrap').style.display = 'flex';
+      drawFrame(curTime); 
+  };
+  img.src = URL.createObjectURL(file);
+}
+function removeWm() {
+  wm.img = null;
+  $('wmFileInput').value = '';
+  $('wmPreviewWrap').style.display = 'none';
+  drawFrame(curTime);
 }
 
 // ══ PRESETS ══════════════════════════════════════════════════════════════════
@@ -351,12 +521,13 @@ document.querySelectorAll('#presetChips .chip').forEach(c=>{
     document.querySelectorAll('#presetChips .chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');
     if(c.dataset.w&&c.dataset.h){$('vidW').value=c.dataset.w;$('vidH').value=c.dataset.h;
       $('fontSize').value=parseInt(c.dataset.w)/parseInt(c.dataset.h)<1?40:48;}
-    drawFrame(0);
+    drawFrame(curTime);
   });
 });
 ['vidW','vidH'].forEach(id=>$(id).addEventListener('input',()=>{
   document.querySelectorAll('#presetChips .chip').forEach(c=>c.classList.remove('active'));
   document.querySelector('#presetChips .chip:last-child').classList.add('active');
+  drawFrame(curTime);
 }));
 
 // ══ MIME ═════════════════════════════════════════════════════════════════════
@@ -384,7 +555,7 @@ if(x.name==='vi-VN-HoaiMyNeural')o.selected=true;og.appendChild(o);});s.appendCh
 // ══ MEDIA MANAGER (IMAGES & VIDEOS) ═════════════════════════════════════════
 function handleImgUpload(input){
   const files=Array.from(input.files);let loaded=0;
-  const checkDone = () => { loaded++; if(loaded===files.length){redistEqual();renderImgUI();drawFrame(0);} };
+  const checkDone = () => { loaded++; if(loaded===files.length){redistEqual();renderImgUI();drawFrame(curTime);} };
   
   files.forEach(f=>{
     const url=URL.createObjectURL(f);
@@ -411,7 +582,7 @@ function moveItem(from, to) {
     if(to < 0 || to >= bgImages.length || from === to) return;
     const [moved] = bgImages.splice(from, 1);
     bgImages.splice(to, 0, moved);
-    renderImgUI(); drawFrame(0);
+    renderImgUI(); drawFrame(curTime);
 }
 
 function redistEqual(){if(!bgImages.length)return;const each=totalDur/bgImages.length;bgImages.forEach(i=>i.duration=each);}
@@ -422,17 +593,20 @@ function adjustDur(idx,newD){
   const diff=old-newD,others=bgImages.filter((_,i)=>i!==idx),oT=others.reduce((s,x)=>s+x.duration,0);
   if(oT<=0){const each=(totalDur-newD)/(n-1);bgImages.forEach((x,i)=>{if(i!==idx)x.duration=each;});}
   else{const sc=(oT+diff)/oT;bgImages.forEach((x,i)=>{if(i!==idx)x.duration=Math.max(MIN,x.duration*sc);});}
-  normDur();renderImgUI();drawFrame(0);
+  normDur();renderImgUI();drawFrame(curTime);
 }
 function normDur(){if(!bgImages.length)return;const sm=bgImages.reduce((s,x)=>s+x.duration,0);
   if(Math.abs(sm-totalDur)>0.001){const sc=totalDur/sm;bgImages.forEach(x=>x.duration*=sc);}}
-function removeImg(i){bgImages.splice(i,1);if(bgImages.length)redistEqual();renderImgUI();drawFrame(0);}
+function removeImg(i){bgImages.splice(i,1);if(bgImages.length)redistEqual();renderImgUI();drawFrame(curTime);}
 
 function renderImgUI(){
   const list=$('imgList'),bar=$('timelineBar'),cnt=$('imgCount'); list.innerHTML='';
   bgImages.forEach((item,i)=>{
-    const el=document.createElement('div');el.className='img-item'; el.draggable=false; // default false to fix slider bug
+    const el=document.createElement('div');el.className='img-item'; el.draggable=false;
     const volHtml = item.type==='video' ? `<input type="range" title="Volume" min="0" max="1" step="0.05" value="${item.volume}" data-vidx="${i}">` : ``;
+    
+    // Add Preview Button (👁️)
+    const previewUrl = item.type==='video' ? item.vid.src : item.img.src;
     
     el.innerHTML=`
       <span class="handle" title="Drag to sort">☰</span>
@@ -440,9 +614,10 @@ function renderImgUI(){
          <button class="up" title="Move Up">▲</button>
          <button class="dn" title="Move Down">▼</button>
       </div>
-      <img src="${item.thumbUrl}">
+      <img src="${item.thumbUrl}" onclick="previewMedia('${item.type}','${previewUrl}')">
       <div class="info"><div class="name">${item.type==='video'?'🎬':''} ${item.name}</div>
       <div class="dur-row"><input type="number" value="${item.duration.toFixed(1)}" step="0.5" min="0.5" data-idx="${i}"><span>s</span>${volHtml}</div></div>
+      <button class="btn-icon" onclick="previewMedia('${item.type}','${previewUrl}')" title="Xem thử">👁️</button>
       <button class="rm" data-idx="${i}" title="Remove">✕</button>`;
       
     el.querySelector('input[type="number"]').addEventListener('change',e=>adjustDur(parseInt(e.target.dataset.idx),parseFloat(e.target.value)||1));
@@ -452,11 +627,11 @@ function renderImgUI(){
     
     el.querySelector('.rm').addEventListener('click',e=>removeImg(parseInt(e.target.dataset.idx)));
     
-    // Sort buttons for Mobile & Desktop
+    // Sort buttons
     el.querySelector('.up').addEventListener('click',()=>moveItem(i, i-1));
     el.querySelector('.dn').addEventListener('click',()=>moveItem(i, i+1));
 
-    // Drag setup strictly isolated to the handle
+    // Drag setup
     const handle = el.querySelector('.handle');
     handle.onmousedown = () => el.draggable = true;
     handle.onmouseup = () => el.draggable = false;
@@ -481,6 +656,21 @@ function renderImgUI(){
   cnt.textContent=bgImages.length?`${bgImages.length} media item(s) — total ${totalDur.toFixed(1)}s`:'';
 }
 
+// ══ TIMELINE SEEK ══
+$('timelineBar').addEventListener('click', e => {
+    if(!audioBuf) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    curTime = pct * totalDur;
+    if(isPlay) { 
+        stopPrev(); playPrev(curTime); 
+    } else { 
+        // Sync but DO NOT play audio if just seeking
+        syncVideos(curTime, false); 
+        drawFrame(curTime); 
+    }
+});
+
 // ══ GENERATE TTS ════════════════════════════════════════════════════════════
 async function genTTS(){
   const btn=$('btnGen'),st=$('stTTS'),dl=$('dlLinks'),sp=$('srtPre');
@@ -501,7 +691,7 @@ async function genTTS(){
       <a class="btn btn-d" href="${d.srt_url}" download="subtitles.srt">SRT</a>
       <a class="btn btn-d" href="${d.vtt_url}" download="subtitles.vtt">VTT</a>
       <a class="btn btn-d" href="${d.json_url}" download="subtitles.json">JSON</a>`;
-    $('btnPlay').disabled=false;$('btnExp').disabled=false;drawFrame(0);
+    $('btnPlay').disabled=false;$('btnExp').disabled=false; curTime=0; drawFrame(0);
   }catch(e){st.textContent='Error: '+e.message;st.className='status error';console.error(e);}
   finally{btn.disabled=false;}
 }
@@ -513,6 +703,9 @@ function S(){return{
   bg:$('bgColor').value, fg:$('textColor').value, hl:$('hlColor').value,
   fgA:parseInt($('textOpacity').value)/100,
   hlA:parseInt($('hlOpacity').value)/100,
+  kb:$('kenBurns').checked, blur:$('blurBg').checked,
+  wmPos:$('wmPos').value, wmA:parseInt($('wmOpacity').value)/100,
+  wmScale:parseInt($('wmScale').value)/100
 };}
 function activeSub(t){for(const s of subs)if(t>=s.start&&t<=s.end)return s;return null;}
 function activeBgInfo(t){
@@ -522,9 +715,12 @@ function activeBgInfo(t){
 }
 
 function drawFrame(time,canvas,settings){
+  if(time === -1) time = curTime; // UI trigger
+  curTime = time;
   const c=canvas||$('cvs'),s=settings||S(),ctx=c.getContext('2d');
   if(c.width!==s.w||c.height!==s.h){c.width=s.w;c.height=s.h;}
-  // BG
+  
+  // 1. Draw Background (Images/Videos + Ken Burns + Blur Mode)
   const bgInfo=activeBgInfo(time);
   if(bgInfo){
     const item = bgInfo.item;
@@ -532,17 +728,46 @@ function drawFrame(time,canvas,settings){
     const w = item.type==='video' ? item.vid.videoWidth||s.w : item.img.width;
     const h = item.type==='video' ? item.vid.videoHeight||s.h : item.img.height;
     
-    if(item.type==='video' && item.vid.paused && Math.abs(item.vid.currentTime - bgInfo.localTime) > 0.1) {
-        item.vid.currentTime = bgInfo.localTime;
+    const ir=w/h, cr=s.w/s.h;
+    
+    let scale = 1.0;
+    if(s.kb && item.type === 'image') scale = 1.0 + (bgInfo.localTime / item.duration) * 0.1; // 10% zoom max
+    
+    if(s.blur) {
+        // Draw Blurred Background
+        ctx.save(); ctx.filter = 'blur(30px) brightness(0.4)';
+        let cw, ch, cx, cy;
+        if(ir>cr){ch=h; cw=ch*cr; cx=(w-cw)/2; cy=0;} else {cw=w; ch=cw/cr; cx=0; cy=(h-ch)/2;}
+        ctx.drawImage(source, cx, cy, cw, ch, -20, -20, s.w+40, s.h+40);
+        ctx.restore();
+        // Draw Fitted Image
+        let fw, fh, fx, fy;
+        if(ir > cr) { fw = s.w * scale; fh = (s.w / ir) * scale; fx = (s.w - fw)/2; fy = (s.h - fh)/2; }
+        else { fh = s.h * scale; fw = (s.h * ir) * scale; fx = (s.w - fw)/2; fy = (s.h - fh)/2; }
+        ctx.drawImage(source, 0, 0, w, h, fx, fy, fw, fh);
+    } else {
+        // Draw Crop Filled Image
+        let cw, ch, cx, cy;
+        if(ir > cr) { ch = h / scale; cw = ch * cr; cx = (w - cw)/2; cy = (h - ch)/2; }
+        else { cw = w / scale; ch = cw / cr; cx = (w - cw)/2; cy = (h - ch)/2; }
+        ctx.drawImage(source, cx, cy, cw, ch, 0, 0, s.w, s.h);
+        ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,s.w,s.h);
     }
-
-    const ir=w/h, cr=s.w/s.h; let sw,sh,sx,sy;
-    if(ir>cr){sh=h;sw=sh*cr;sx=(w-sw)/2;sy=0;}
-    else{sw=w;sh=sw/cr;sx=0;sy=(h-sh)/2;}
-    ctx.drawImage(source,sx,sy,sw,sh,0,0,s.w,s.h);
-    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,s.w,s.h);
   }else{ctx.fillStyle=s.bg;ctx.fillRect(0,0,s.w,s.h);}
-  // Sub
+  
+  // 2. Draw Watermark (With Scale support)
+  if(wm.img) {
+      ctx.save(); ctx.globalAlpha = s.wmA;
+      // Use s.wmScale to determine width percentage
+      const ww = s.w * s.wmScale, wh = ww * (wm.img.height / wm.img.width), pad = 30;
+      let wx, wy;
+      if(s.wmPos.includes('l')) wx = pad; else wx = s.w - ww - pad;
+      if(s.wmPos.includes('t')) wy = pad; else wy = s.h - wh - pad;
+      ctx.drawImage(wm.img, wx, wy, ww, wh);
+      ctx.restore();
+  }
+
+  // 3. Draw Subtitles
   const sub=activeSub(time);
   if(sub){
     ctx.save();ctx.font=`bold ${s.fs}px 'Segoe UI',system-ui,sans-serif`;
@@ -559,6 +784,8 @@ function drawFrame(time,canvas,settings){
     ctx.fillStyle=hexRgba(s.fg,s.fgA);
     lines.forEach((l,i)=>ctx.fillText(l,x,sy2+i*lh));ctx.restore();
   }
+  
+  // 4. Progress bar at bottom
   if(audioBuf&&time>0){const pct=time/audioBuf.duration;ctx.save();
     ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(0,s.h-3,s.w,3);
     ctx.fillStyle=hexRgba(s.hl,0.8);ctx.fillRect(0,s.h-3,s.w*pct,3);ctx.restore();}
@@ -567,28 +794,53 @@ function wrap(ctx,t,mw){const w=t.split(/\s+/),ls=[];let c='';w.forEach(x=>{cons
 function rrP(c,x,y,w,h,r){c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
 function rrF(c,x,y,w,h,r){c.beginPath();rrP(c,x,y,w,h,r);c.fill();}
 
-// ══ PREVIEW ═════════════════════════════════════════════════════════════════
-function syncVideos(time){
+// ══ PREVIEW PLAYBACK ════════════════════════════════════════════════════════
+function syncVideos(time, playTarget = false){
   const active=activeBgInfo(time);
   bgImages.forEach(i=>{
     if(i.type==='video'){
-      if(active && active.item===i){ if(i.vid.paused){ i.vid.currentTime=active.localTime; i.vid.play().catch(()=>{}); } }
-      else { if(!i.vid.paused) i.vid.pause(); }
+      if(active && active.item===i){ 
+          // Cập nhật currentTime nếu bị lệch quá 0.1s
+          if(Math.abs(i.vid.currentTime - active.localTime) > 0.1){
+              i.vid.currentTime = active.localTime;
+          }
+          if(playTarget && i.vid.paused) i.vid.play().catch(()=>{});
+          if(!playTarget && !i.vid.paused) i.vid.pause();
+      }
+      else { 
+          if(!i.vid.paused) i.vid.pause(); 
+      }
     }
   });
 }
 function stopAllVideos(){ bgImages.forEach(i=>{if(i.type==='video')i.vid.pause();}); }
 
-function playPrev(){
+function playPrev(startTime = curTime){
   if(!audioBuf)return; stopPrev(); initAudioCtx();
   if(audioCtx.state==='suspended')audioCtx.resume();
-  srcNode=audioCtx.createBufferSource();srcNode.buffer=audioBuf;srcNode.connect(audioCtx.destination);srcNode.start(0);
-  t0=audioCtx.currentTime;isPlay=true;$('btnPlay').disabled=true;$('btnStop').disabled=false;
-  srcNode.onended=()=>{isPlay=false;$('btnPlay').disabled=false;$('btnStop').disabled=true;if(aFrame)cancelAnimationFrame(aFrame);stopAllVideos();drawFrame(0);};
-  (function lp(){if(!isPlay)return; const t=audioCtx.currentTime-t0; syncVideos(t); drawFrame(t); aFrame=requestAnimationFrame(lp);})();
+  srcNode=audioCtx.createBufferSource();srcNode.buffer=audioBuf;srcNode.connect(audioCtx.destination);
+  
+  srcNode.start(0, startTime);
+  t0=audioCtx.currentTime - startTime; isPlay=true;$('btnPlay').disabled=true;$('btnStop').disabled=false;
+  
+  if(bgm.el) { bgm.el.currentTime = startTime % bgm.el.duration; bgm.el.play().catch(()=>{}); }
+
+  srcNode.onended=()=>{
+    isPlay=false;$('btnPlay').disabled=false;$('btnStop').disabled=true;
+    if(aFrame)cancelAnimationFrame(aFrame);stopAllVideos(); if(bgm.el) bgm.el.pause(); curTime=0; drawFrame(0);
+  };
+  (function lp(){
+      if(!isPlay)return; 
+      curTime = audioCtx.currentTime-t0; 
+      syncVideos(curTime, true); // true = allow video playing
+      drawFrame(curTime); 
+      aFrame=requestAnimationFrame(lp);
+  })();
 }
-function stopPrev(){isPlay=false;if(aFrame)cancelAnimationFrame(aFrame); stopAllVideos();
-  if(srcNode){try{srcNode.stop();}catch(e){}srcNode=null;}$('btnPlay').disabled=!audioBuf;$('btnStop').disabled=true;}
+function stopPrev(){
+  isPlay=false;if(aFrame)cancelAnimationFrame(aFrame); stopAllVideos(); if(bgm.el) bgm.el.pause();
+  if(srcNode){try{srcNode.stop();}catch(e){}srcNode=null;}$('btnPlay').disabled=!audioBuf;$('btnStop').disabled=true;
+}
 
 // ══ EXPORT ══════════════════════════════════════════════════════════════════
 async function exportVid(){
@@ -607,6 +859,10 @@ async function exportVid(){
          i.gainNode.disconnect(); i.gainNode.connect(ad); i.gainNode.connect(audioCtx.destination);
      }
   });
+  if(bgm.gain){ 
+      bgm.gain.disconnect(); bgm.gain.connect(ad); bgm.gain.connect(audioCtx.destination); 
+      if(bgm.el){ bgm.el.currentTime=0; bgm.el.play(); } 
+  }
 
   ad.stream.getAudioTracks().forEach(t=>st.addTrack(t));
   const rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:br}),ch=[];
@@ -616,11 +872,12 @@ async function exportVid(){
   
   (function lp(){const el=audioCtx.currentTime-rt,fn=Math.floor(el*s.fps);
     if(el>=dur+.3 || fn>=tot){
-        rec.stop();try{as2.stop();}catch(e){} stopAllVideos();
+        rec.stop();try{as2.stop();}catch(e){} stopAllVideos(); if(bgm.el) bgm.el.pause();
         bgImages.forEach(i=>{ if(i.type==='video'&&i.gainNode){ i.gainNode.disconnect(); i.gainNode.connect(audioCtx.destination); } });
+        if(bgm.gain){ bgm.gain.disconnect(); bgm.gain.connect(audioCtx.destination); }
         return;
     }
-    if(fn!==last&&fn<tot){const t=fn/s.fps; syncVideos(t); drawFrame(t,off,s); drawFrame(t);
+    if(fn!==last&&fn<tot){const t=fn/s.fps; syncVideos(t, true); drawFrame(t,off,s); drawFrame(t);
       if(vt&&vt.requestFrame)vt.requestFrame();last=fn;
       const p=Math.round(fn/tot*100);$('expFill').style.width=p+'%';$('stExp').textContent=`${fn+1}/${tot} (${p}%)`;}
     requestAnimationFrame(lp);})();
