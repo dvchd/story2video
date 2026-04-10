@@ -16,7 +16,7 @@ Dự án yêu cầu cài đặt [Python](https://www.python.org/).
 
 1. **Clone repository:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/dvchd/story2video.git
    cd story2video
    ```
 
