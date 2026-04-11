@@ -3,6 +3,11 @@ services:
     build: .
     expose:
       - "8001"
+    volumes:
+      - story2video_output:/app/output
     env_file:
       - .env
     restart: unless-stopped
+
+volumes:
+  story2video_output:
