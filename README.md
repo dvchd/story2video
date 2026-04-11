@@ -45,7 +45,7 @@ Bạn có thể dễ dàng triển khai dự án bằng Docker:
 2. **Cấu hình trên Coolify:**
    - Chọn nguồn từ GitHub repository.
    - Coolify sẽ tự động nhận diện `Dockerfile` hoặc bạn có thể cấu hình sử dụng `docker-compose.yml`.
-   - Đảm bảo port `8001` được expose.
+   - Coolify sẽ tự động proxy port `8001`, không cần mở port ra ngoài.
 
 ## ️ Công nghệ sử dụng
 
