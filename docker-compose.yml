@@ -3,8 +3,6 @@ services:
     build: .
     expose:
       - "8001"
-    volumes:
-      - ./output:/app/output
     env_file:
       - .env
     restart: unless-stopped
