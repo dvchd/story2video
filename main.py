@@ -32,7 +32,7 @@ if sys.platform == "win32":
 
 PROXY = os.getenv("PROXY", "").strip() or None
 PORT = int(os.getenv("PORT", "8001"))
-VERSION = os.getenv("VERSION", "v1.2.0")
+VERSION = os.getenv("VERSION", "v1.2.1")
 OUTPUT_DIR = Path("output"); OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Story2Video")
@@ -134,6 +134,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .hdr{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
 h1{font-size:1.6rem;font-weight:700} h1 span{color:var(--ac)}
 .ver{font-size:.75rem;color:var(--dm);background:var(--sf);border:1px solid var(--bd);padding:2px 10px;border-radius:20px}
+.ver.ghlink{display:inline-flex;align-items:center;gap:5px;text-decoration:none;transition:border-color .15s,color .15s}
+.ver.ghlink:hover{color:var(--tx);border-color:var(--ac)}
+.ver.ghlink svg{width:13px;height:13px;fill:currentColor}
 .sub{color:var(--dm);font-size:.9rem;margin-bottom:28px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start} /* Added align-items:start for sticky */
 @media(max-width:768px){.grid{grid-template-columns:1fr}}
@@ -242,6 +245,7 @@ details.adv-set summary:hover { color: var(--ac); }
 <div class="hdr">
   <h1>Story<span>2</span>Video</h1>
   <span class="ver">{{VERSION}}</span>
+  <a class="ver ghlink" href="https://github.com/dvchd/story2video" target="_blank" rel="noopener noreferrer" title="Mã nguồn trên GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
 </div>
 <p class="sub">Edge TTS → MP3 + SRT/VTT → Client-side Video Rendering</p>
 <div class="grid">

@@ -1,11 +1,11 @@
 [project]
 name = "story2video"
-version = "1.1.0"
+version = "1.2.1"
 description = "Chuyển đổi văn bản thành video chuyên nghiệp với Edge TTS và Client-side Rendering."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "edge-tts>=7.2.8",
+    "edge-tts>=7.3.1",
     "fastapi>=0.135.3",
     "python-dotenv>=1.2.2",
     "uvicorn>=0.44.0",
